@@ -6,6 +6,7 @@ import gensim
 import string
 import re
 import nltk
+import pyLDAvis.gensim
 
 def parseXml(xmlFile):
     """
@@ -45,7 +46,7 @@ def filterByPOS(posTags, filter):
         #print(w[1])
         for f in filter:
             if w[1] == f:
-                filteredArr.append(w)
+                filteredArr.append(w[0])
     return filteredArr
 
 def clean(doc):
@@ -57,7 +58,7 @@ def clean(doc):
     """
     i = 0
     stop = set(stopwords.words('english')) #stop words
-    allow = ["all","lord","your"]
+    allow = ["lord"]
     punc = set(string.punctuation)
     moreStop = ["ye", "shall", "thee", "thy", "thou", "say", "said", "us", "indeed", "may", "hath"]
     for word in moreStop:
@@ -74,19 +75,61 @@ def clean(doc):
     cleanDoc = [word for word in cleanDoc if word not in punc]
     return(cleanDoc)
 
+def applyLDA(cleanDocs):
+    """
+    Apply the model to the data:
+        - Construct doc-term matrix
+        - Convert dictionary into bag-of-words
+        - Apply the LDA model
+    """
+    dictionary = corpora.Dictionary(cleanDocs)
+    corpus = [dictionary.doc2bow(doc) for doc in cleanDocs]
+    model = gensim.models.ldamodel.LdaModel(corpus, num_topics = 20, id2word = dictionary, passes = 50)
+
+    return(model)
+
+def applyLDAvis(cleanDocs):
+    """
+    Apply the model to the data:
+        - Construct doc-term matrix
+        - Convert dictionary into bag-of-words
+        - Apply the LDA model
+    """
+    dictionary = corpora.Dictionary(cleanDocs)
+    corpus = [dictionary.doc2bow(doc) for doc in cleanDocs]
+    model = gensim.models.ldamodel.LdaModel(corpus, num_topics = 20, id2word = dictionary, passes = 50)
+    pyLDAvis.gensim.prepare(model, corpus, dictionary)
+
+
 xmlFile = "English-Yusuf-Ali.xml"
 docs = parseXml(xmlFile)
 docs.insert(0, "")# #shift index to match with chapter index
 cleanDocs= []
 posDocs= []
-for x in range(1, 114):
+for x in range(1, 5):
     cleanDoc = clean(docs[x])
     cleanDoc = cleanDoc[1:]  # remove first element which is index
     posDocs.extend(nltk.pos_tag(cleanDoc))
     cleanDocs.extend(cleanDoc)
-n = 10.0 # number of chunks to generate
+
+filter1 =["JJ", "JJR", "JJS", "NN", "NNS", "NNP", "NNPS", "PRP", "PRP$", "RB", "RBR", "RBS", "VB", "VBD", "VBG", "VBN", "VBP", "VBZ", "WP", "WP$", "WRB"]
+cleandocs = filterByPOS(posDocs, filter1)
+print(cleanDocs)
+#print(cleanDocs)
+n = 100.0 # number of chunks to generate
 chunk = int(round(len(cleanDocs)/n))
 chunks = [cleanDocs[i:i+chunk] for i in range(0,len(cleanDocs),chunk)]
+#cleanDoc = chunks
+cleanDocs = chunks
+
+model = applyLDA(cleanDocs)
+topics = model.print_topics(num_topics = 20, num_words = 10)
+for topic in topics:
+    print(topic)
+
+#applyLDAvis(cleanDocs)
+#pyLDAvis.gensim.prepare(model, corpus, dictionary)
+
 #print(cleanDocs)
 
 """
@@ -95,7 +138,7 @@ Prints NN
 doc1 = clean(docs[1])       Gets Surah Fatiha
 arr = nltk.pos_tag(doc1)    Creates an array of arrays of size 2 First element is the word, second is the tag
 print(arr[0][1])            Prints the type of the first word of Surah Fatiha
-"""
+
 print(posDocs)
 filter1 = ["NN", "JJ"]
 filter2 = ["NN"]
@@ -104,7 +147,7 @@ filtered = filterByPOS(posDocs, filter1)
 print(filtered)
 #print(cleanDocs)
 """
-
+"""
 1-Al-Fatihah 2-Al-Baqarah 3-Al-'Imran 4-An-Nisa' 5-Al-Ma'idah 6-Al-An'am 7-Al-A'raf 8-Al-Anfal 9-Al-Bara'at / At-Taubah 10-Yunus 11-Hud 12-Yusuf 13-Ar-
 Ra'd 14-Ibrahim 15-Al-Hijr 16-An-Nahl 17-Bani Isra'il 18-Al-Kahf 19-Maryam 20-Ta Ha 21-Al-Anbiya' 22-Al-Hajj 23-Al-Mu'minun 24-An-Nur 25-Al-Furqan 26-Ash-
 Shu'ara' 27-An-Naml 28-Al-Qasas 29-Al-'Ankabut 30-Ar-Rum 31-Luqman 32-As-Sajdah 33-Al-Ahzab 34-Al-Saba' 35-Al-Fatir 36-Ya Sin 37-As-Saffat 38-Sad 39-Az-
