@@ -1,5 +1,4 @@
 import xml.etree.ElementTree as ET
-from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from gensim import corpora, models
 import gensim
@@ -7,6 +6,7 @@ import string
 import re
 import nltk
 import pyLDAvis.gensim
+from nltk.stem.wordnet import WordNetLemmatizer
 
 def parseXml(xmlFile):
     """
@@ -59,6 +59,7 @@ def clean(doc):
     stop = set(stopwords.words('english')) #stop words
     allow = ["lord"]
     punc = set(string.punctuation)
+    lemmatize = WordNetLemmatizer()
     moreStop = ["ye", "shall", "thee", "thy", "thou", "say", "said", "us", "indeed", "may", "hath"]
     for word in moreStop:
         stop.add(word) #add more stop words
@@ -69,6 +70,7 @@ def clean(doc):
     cleanDoc = re.sub('(?<! )(?=[.,;!?()])|(?<=[.,;!?()])(?! )', r' ', cleanDoc)
     cleanDoc = regex.sub('', cleanDoc) #remove punctuation
     cleanDoc = ''.join(i for i in cleanDoc if not i.isdigit()) #remove remove any digit
+    cleanDoc = " ".join(lemmatize.lemmatize(i) for i in cleanDoc.split())
     cleanDoc = cleanDoc.split() #split into list
     cleanDoc = [word for word in cleanDoc if (word not in stop or word in allow)]
     cleanDoc = [word for word in cleanDoc if word not in punc]
@@ -109,7 +111,7 @@ if __name__ == '__main__':
     docs.insert(0, "")# #shift index to match with chapter index
     cleanDocs= []
     posDocs= []
-    for x in range(110, 114):
+    for x in range(1, 11):
         cleanDoc = clean(docs[x])
         cleanDoc = cleanDoc[1:]  # remove first element which is index
         cleanDocs.extend(cleanDoc)
